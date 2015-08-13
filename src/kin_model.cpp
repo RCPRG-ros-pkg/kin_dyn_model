@@ -60,6 +60,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         }
         if (!found_joint && seg_it->second.segment.getJoint().getType() != KDL::Joint::None) {
             int q_idx = ign_joint_name_q_idx_map_.size();
+            std::cout << "mapping joint q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
             ign_q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
             ign_q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
 
@@ -323,6 +324,7 @@ void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, co
 
 void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const {
     for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
+        std::cout<<"KinematicModel::getJointValuesKDL q_nr=" << q_nr << std::endl;
         std::map<int, int >::const_iterator it = q_nr_q_idx_map_.find(q_nr);
         if (it != q_nr_q_idx_map_.end()) {
             int q_idx = it->second;
