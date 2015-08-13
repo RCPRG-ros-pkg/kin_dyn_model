@@ -52,6 +52,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
                 if (seg_it->second.segment.getJoint().getType() == KDL::Joint::None) {
                     std::cout << "ERROR: KinematicModel::KinematicModel: joint " << joint_name << " has type: None" << std::endl;
                 }
+//                std::cout << "mapping joint q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
                 q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
                 q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
                 found_joint = true;
@@ -60,7 +61,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         }
         if (!found_joint && seg_it->second.segment.getJoint().getType() != KDL::Joint::None) {
             int q_idx = ign_joint_name_q_idx_map_.size();
-            std::cout << "mapping joint q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
+//            std::cout << "mapping ignored joint q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
             ign_q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
             ign_q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
 
@@ -77,8 +78,6 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
     }
 
     parseURDF(urdf_string);
-
-//    std::cout << q_nr_joint_mimic_map_.size() << std::endl;
 }
 
 bool KinematicModel::parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o)
@@ -324,16 +323,24 @@ void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, co
 
 void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const {
     for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
-        std::cout<<"KinematicModel::getJointValuesKDL q_nr=" << q_nr << std::endl;
+//        std::cout<<"KinematicModel::getJointValuesKDL q_nr=" << q_nr << std::endl;
         std::map<int, int >::const_iterator it = q_nr_q_idx_map_.find(q_nr);
         if (it != q_nr_q_idx_map_.end()) {
             int q_idx = it->second;
+            if (q_idx >= q.innerSize()) {
+                std::cout<< "ERROR: q_idx >= q.innerSize()   " << q_idx << " " << q.innerSize() << std::endl;
+                *((int*)0) = 0;
+            }
             q_kdl(q_nr) = q[q_idx];
         }
         else {
             std::map<int, int >::const_iterator ign_it = ign_q_nr_q_idx_map_.find(q_nr);
             if (ign_it != ign_q_nr_q_idx_map_.end()) {
                 int q_idx = ign_it->second;
+                if (q_idx >= ign_q_.innerSize()) {
+                    std::cout<< "ERROR: q_idx >= q.innerSize()   " << q_idx << " " << ign_q_.innerSize() << std::endl;
+                    *((int*)0) = 0;
+                }
                 q_kdl(q_nr) = ign_q_[q_idx];
 //                std::cout << "setting ignored joint " << q_nr << " value " << q_kdl(q_nr) << std::endl;
             }
@@ -346,6 +353,7 @@ void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &
     // update mimic joints
     for (std::map<int, boost::shared_ptr<Mimic > >::const_iterator j_it = q_nr_joint_mimic_map_.begin(); j_it != q_nr_joint_mimic_map_.end(); j_it++) {
         q_kdl(j_it->first) = q_kdl(j_it->second->q_nr_) * j_it->second->multiplier_ + j_it->second->offset_;
+
 //        std::cout << "setting mimic joint " << j_it->first << " to " << q_kdl(j_it->first) <<
 //            " from joint " << j_it->second->q_nr_ << " (" << q_kdl(j_it->second->q_nr_) << ")  mul: " << j_it->second->multiplier_ << " offset: " << j_it->second->offset_ << std::endl;
     }
