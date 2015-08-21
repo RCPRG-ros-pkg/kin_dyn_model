@@ -78,6 +78,23 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
     }
 
     parseURDF(urdf_string);
+
+    for (int q_idx = 0; q_idx < joint_names.size(); q_idx++) {
+        std::map<std::string, double>::const_iterator it_lo = joint_lower_limit_.find(joint_names[q_idx]);
+        if (it_lo == joint_lower_limit_.end()) {
+            std::cout << "ERROR: KinematicModel::KinematicModel joint " << joint_names[q_idx] << " not found in joint_lower_limit_ map" << std::endl;
+            return;
+        }
+
+        std::map<std::string, double>::const_iterator it_up = joint_upper_limit_.find(joint_names[q_idx]);
+        if (it_up == joint_upper_limit_.end()) {
+            std::cout << "ERROR: KinematicModel::KinematicModel joint " << joint_names[q_idx] << " not found in joint_upper_limit_ map" << std::endl;
+            return;
+        }
+
+        joint_lower_limit_q_idx_.push_back(it_lo->second);
+        joint_upper_limit_q_idx_.push_back(it_up->second);
+    }
 }
 
 bool KinematicModel::parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o)
@@ -150,7 +167,7 @@ bool KinematicModel::parseLimit(double &lower_limit, double &upper_limit, TiXmlE
     else {
         lower_limit = 0.0;
     }
-	if (!upper_char)
+	if (upper_char)
 	{
         try
         {
@@ -462,5 +479,13 @@ void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name
 //        changeBase(jac, T_total.M, jac);
 //        jac.changeBase(T_total.M)
 //        return 0;
+}
+
+double KinematicModel::getLowerLimit(int q_idx) const {
+    return joint_lower_limit_q_idx_[q_idx];
+}
+
+double KinematicModel::getUpperLimit(int q_idx) const {
+    return joint_upper_limit_q_idx_[q_idx];
 }
 

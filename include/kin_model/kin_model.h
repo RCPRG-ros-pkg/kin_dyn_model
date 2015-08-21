@@ -58,6 +58,9 @@ public:
     void setIgnoredJointValue(const std::string &joint_name, double value);
     void getIgnoredJoints(Eigen::VectorXd &ign_q, std::vector<std::string > &ign_joint_names) const;
 
+    double getLowerLimit(int q_idx) const;
+    double getUpperLimit(int q_idx) const;
+
 protected:
     class Mimic {
     public:
@@ -84,6 +87,9 @@ protected:
     std::map<int, boost::shared_ptr<Mimic > > q_nr_joint_mimic_map_;
     std::map<std::string, double> joint_lower_limit_;
     std::map<std::string, double> joint_upper_limit_;
+
+    std::vector<double> joint_lower_limit_q_idx_;
+    std::vector<double> joint_upper_limit_q_idx_;
 };
 
 #endif
