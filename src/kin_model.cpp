@@ -95,6 +95,17 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         joint_lower_limit_q_idx_.push_back(it_lo->second);
         joint_upper_limit_q_idx_.push_back(it_up->second);
     }
+
+
+    for (KDL::SegmentMap::const_iterator seg_it = tree_.getSegments().begin(); seg_it != tree_.getSegments().end(); seg_it++) {
+        const std::string &joint_name = seg_it->second.segment.getJoint().getName();
+        for (int q_idx = 0; q_idx < joint_names.size(); q_idx++) {
+            if (joint_name == joint_names[q_idx]) {
+                const std::string &link_name = seg_it->second.segment.getName();
+                q_idx_link_name_map_[q_idx] = link_name;
+            }
+        }
+    }
 }
 
 bool KinematicModel::parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o)
@@ -454,9 +465,9 @@ void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name
                 q_seg = q[q_idx];
             }
 
-            KDL::Frame T_local = seg_kdl.pose(q_seg);
+            KDL::Frame T_local = seg_kdl.pose(q_seg);       // T_local = T_L(i)_L(i+1)
             // calculate new T_end:
-            T_total = T_local * T_total;
+            T_total = T_local * T_total;                    // T_total = T_L(i)_L(e)
             // get the twist of the segment:
             KDL::Twist t_local = seg_kdl.twist(q_seg, 1.0);
             // transform the endpoint of the local twist to the global endpoint:
@@ -473,11 +484,20 @@ void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name
             // goto the parent
             it = it->second.parent;
         }
-
+/*
+        for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
+            KDL::Twist t;
+            for (int dof_idx = 0; dof_idx < 6; dof_idx++) {
+                t[dof_idx] = jac(dof_idx, q_idx)
+            }
+            t.RefPoint(KDL);
+        }
+*/
         // Change the base of the complete jacobian from the endpoint to the base
         // NOT!
+
 //        changeBase(jac, T_total.M, jac);
-//        jac.changeBase(T_total.M)
+//        jac.changeBase(T_total.M);
 //        return 0;
 }
 
@@ -487,5 +507,35 @@ double KinematicModel::getLowerLimit(int q_idx) const {
 
 double KinematicModel::getUpperLimit(int q_idx) const {
     return joint_upper_limit_q_idx_[q_idx];
+}
+
+void KinematicModel::setLowerLimit(int q_idx, double limit) {
+    joint_lower_limit_q_idx_[q_idx] = limit;
+}
+
+void KinematicModel::setUpperLimit(int q_idx, double limit) {
+    joint_upper_limit_q_idx_[q_idx] = limit;
+}
+
+bool KinematicModel::getJointAxisAndOrigin(int q_idx, KDL::Vector &axis, KDL::Vector &origin) const {
+    std::map<int, std::string>::const_iterator it = q_idx_link_name_map_.find(q_idx);
+    if (it == q_idx_link_name_map_.end()) {
+        return false;
+    }
+
+    KDL::SegmentMap::const_iterator seg_it = tree_.getSegment( it->second );
+    axis = seg_it->second.segment.getJoint().JointAxis();
+    origin = seg_it->second.segment.getJoint().JointOrigin();
+    return true;
+}
+
+bool KinematicModel::getJointLinkName(int q_idx, std::string &link_name) const {
+    std::map<int, std::string>::const_iterator it = q_idx_link_name_map_.find(q_idx);
+    if (it == q_idx_link_name_map_.end()) {
+        return false;
+    }
+
+    link_name = it->second;
+    return true;
 }
 
