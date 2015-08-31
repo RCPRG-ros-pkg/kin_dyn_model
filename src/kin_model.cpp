@@ -484,21 +484,19 @@ void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name
             // goto the parent
             it = it->second.parent;
         }
-/*
+
+//        jac.changeBase(T_total.M);
         for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
             KDL::Twist t;
             for (int dof_idx = 0; dof_idx < 6; dof_idx++) {
-                t[dof_idx] = jac(dof_idx, q_idx)
+                t[dof_idx] = jac(dof_idx, q_idx);
             }
-            t.RefPoint(KDL);
-        }
-*/
-        // Change the base of the complete jacobian from the endpoint to the base
-        // NOT!
 
-//        changeBase(jac, T_total.M, jac);
-//        jac.changeBase(T_total.M);
-//        return 0;
+            t = T_total.M * t;
+            for (int dof_idx = 0; dof_idx < 6; dof_idx++) {
+                jac(dof_idx, q_idx) = t[dof_idx];
+            }
+        }
 }
 
 double KinematicModel::getLowerLimit(int q_idx) const {
