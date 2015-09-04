@@ -67,6 +67,8 @@ public:
     bool getJointLinkName(int q_idx, std::string &link_name) const;
     bool getJointAxisAndOrigin(int q_idx, KDL::Vector &axis, KDL::Vector &origin) const;
 
+    int getDofCount() const;
+
 protected:
     class Mimic {
     public:
@@ -98,6 +100,7 @@ protected:
     std::vector<double> joint_upper_limit_q_idx_;
 
     std::map<int, std::string> q_idx_link_name_map_;
+    int ndof_;
 };
 
 #endif

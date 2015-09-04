@@ -106,6 +106,8 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
             }
         }
     }
+
+    ndof_ = joint_names.size();
 }
 
 bool KinematicModel::parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o)
@@ -535,5 +537,9 @@ bool KinematicModel::getJointLinkName(int q_idx, std::string &link_name) const {
 
     link_name = it->second;
     return true;
+}
+
+int KinematicModel::getDofCount() const {
+    return ndof_;
 }
 
