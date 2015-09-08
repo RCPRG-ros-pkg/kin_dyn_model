@@ -53,7 +53,7 @@ public:
     void getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
                                         const std::string &link_name1, const KDL::Vector &x1,
                                         const std::string &link_name2, const KDL::Vector &x2, const Eigen::VectorXd &q) const;
-    void getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const Eigen::VectorXd &q, const std::string &base_name) const;
+    void getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const KDL::JntArray &q_kdl, const std::string &base_name) const;
 
     void setIgnoredJointValue(const std::string &joint_name, double value);
     void getIgnoredJoints(Eigen::VectorXd &ign_q, std::vector<std::string > &ign_joint_names) const;

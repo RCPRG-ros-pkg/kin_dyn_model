@@ -52,7 +52,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
                 if (seg_it->second.segment.getJoint().getType() == KDL::Joint::None) {
                     std::cout << "ERROR: KinematicModel::KinematicModel: joint " << joint_name << " has type: None" << std::endl;
                 }
-//                std::cout << "mapping joint q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
+                std::cout << "mapping joint " << joint_name << " q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
                 q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
                 q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
                 found_joint = true;
@@ -61,7 +61,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         }
         if (!found_joint && seg_it->second.segment.getJoint().getType() != KDL::Joint::None) {
             int q_idx = ign_joint_name_q_idx_map_.size();
-//            std::cout << "mapping ignored joint q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
+            std::cout << "mapping ignored joint " << joint_name << " q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
             ign_q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
             ign_q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
 
@@ -77,6 +77,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         ign_q_(q_idx) = 0.0;
     }
 
+//    *((int*)0) = 1;
     parseURDF(urdf_string);
 
     for (int q_idx = 0; q_idx < joint_names.size(); q_idx++) {
@@ -343,7 +344,12 @@ void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, co
     SetToZero(jac_out);
     pjac_solver_->JntToJac(q_in, jac_out, link_name);
     for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
-        int q_nr = q_idx_q_nr_map_.find(q_idx)->second;
+        std::map<int, int >::const_iterator map_it = q_idx_q_nr_map_.find(q_idx);
+        if (map_it == q_idx_q_nr_map_.end()) {
+            std::cout << "ERROR: KinematicModel::getJacobian: wrong q_idx" << std::endl;
+            return;
+        }
+        int q_nr = map_it->second;
         KDL::Twist t = jac_out.getColumn(q_nr);
         for (int d_idx = 0; d_idx < 6; d_idx++) {
             jac(d_idx, q_idx) = t[d_idx];
@@ -422,15 +428,18 @@ void KinematicModel::getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
         }
     }
 
-    getJacobianForX(jac1, link_name1, x1, q, common_link_name);
-    getJacobianForX(jac2, link_name2, x2, q, common_link_name);
+    KDL::JntArray q_kdl( tree_.getNrOfJoints() );
+    getJointValuesKDL(q, q_kdl);
+
+    getJacobianForX(jac1, link_name1, x1, q_kdl, common_link_name);
+    getJacobianForX(jac2, link_name2, x2, q_kdl, common_link_name);
 }
 
-void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const Eigen::VectorXd &q, const std::string &base_name) const {
+void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const KDL::JntArray &q_kdl, const std::string &base_name) const {
         // Lets search the tree-element
         // If segmentname is not inside the tree, back out:
         // Let's make the jacobian zero:
-        for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
+        for (int q_idx = 0; q_idx < ndof_; q_idx++) {
             for (int dof_idx = 0; dof_idx < 6; dof_idx++) {
                 jac(dof_idx, q_idx) = 0.0;
             }
@@ -458,26 +467,36 @@ void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name
             const KDL::Segment &seg_kdl = it->second.segment;
             int q_idx = -1;
             double q_seg = 0.0;
+            bool addToJacobian = false;
             if (seg_kdl.getJoint().getType() == KDL::Joint::None) {
+                addToJacobian = false;
                 q_idx = -1;
                 q_seg = 0.0;
             }
             else {
-                q_idx = q_nr_q_idx_map_.find(it->second.q_nr)->second;
-                q_seg = q[q_idx];
+                q_seg = q_kdl(it->second.q_nr);
+                std::map<int, int >::const_iterator map_it = q_nr_q_idx_map_.find(it->second.q_nr);
+                if (map_it != q_nr_q_idx_map_.end()) {
+                    addToJacobian = true;
+                    q_idx = map_it->second;
+                }
+                else {
+                    addToJacobian = false;
+                }
+
             }
 
             KDL::Frame T_local = seg_kdl.pose(q_seg);       // T_local = T_L(i)_L(i+1)
             // calculate new T_end:
             T_total = T_local * T_total;                    // T_total = T_L(i)_L(e)
             // get the twist of the segment:
-            KDL::Twist t_local = seg_kdl.twist(q_seg, 1.0);
-            // transform the endpoint of the local twist to the global endpoint:
-            t_local = t_local.RefPoint(T_total.p - T_local.p);
-            // transform the base of the twist to the endpoint
-            t_local = T_total.M.Inverse(t_local);
-            // store the twist in the jacobian:
-            if (q_idx != -1) {
+            if (addToJacobian) {
+                KDL::Twist t_local = seg_kdl.twist(q_seg, 1.0);
+                // transform the endpoint of the local twist to the global endpoint:
+                t_local = t_local.RefPoint(T_total.p - T_local.p);
+                // transform the base of the twist to the endpoint
+                t_local = T_total.M.Inverse(t_local);
+                // store the twist in the jacobian:
                 for (int dof_idx = 0; dof_idx < 6; dof_idx++) {
                     jac(dof_idx, q_idx) = t_local[dof_idx];
                 }
@@ -487,8 +506,8 @@ void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name
             it = it->second.parent;
         }
 
-//        jac.changeBase(T_total.M);
-        for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
+        // change Base
+        for (int q_idx = 0; q_idx < ndof_; q_idx++) {
             KDL::Twist t;
             for (int dof_idx = 0; dof_idx < 6; dof_idx++) {
                 t[dof_idx] = jac(dof_idx, q_idx);
