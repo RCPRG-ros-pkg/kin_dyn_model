@@ -69,6 +69,8 @@ public:
 
     int getDofCount() const;
 
+    int getJointIndex(const std::string &joint_name) const;
+
 protected:
     class Mimic {
     public:

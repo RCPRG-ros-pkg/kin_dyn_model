@@ -562,3 +562,20 @@ int KinematicModel::getDofCount() const {
     return ndof_;
 }
 
+int KinematicModel::getJointIndex(const std::string &joint_name) const {
+    std::map<std::string, int >::const_iterator it1 = joint_name_q_nr_map_.find(joint_name);
+    if (it1 == joint_name_q_nr_map_.end()) {
+        std::cout << "KinematicModel::getJointIndex: could not find joint " << joint_name << std::endl;
+        return -1;
+    }
+
+    int q_nr = it1->second;
+    std::map<int, int >::const_iterator it2 = q_nr_q_idx_map_.find(q_nr);
+    if (it2 == q_nr_q_idx_map_.end()) {
+        std::cout << "KinematicModel::getJointIndex: could not find joint q_nr " << q_nr << " name " << joint_name << std::endl;
+        return -1;
+    }
+
+    return it2->second;
+}
+
