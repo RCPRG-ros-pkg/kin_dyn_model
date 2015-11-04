@@ -71,6 +71,8 @@ public:
 
     int getJointIndex(const std::string &joint_name) const;
 
+    const std::vector<std::string > &getJointNames() const;
+
 protected:
     class Mimic {
     public:
@@ -101,6 +103,7 @@ protected:
     std::vector<double> joint_lower_limit_q_idx_;
     std::vector<double> joint_upper_limit_q_idx_;
 
+    std::vector<std::string > joint_names_;
     std::map<int, std::string> q_idx_link_name_map_;
     int ndof_;
 };

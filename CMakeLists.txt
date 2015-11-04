@@ -16,6 +16,13 @@ find_package(Eigen REQUIRED)
 find_package(orocos_kdl REQUIRED)
 find_package(kdl_parser REQUIRED)
 
+# Export package information (replaces catkin_package() macro) 
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES kin_dyn_model
+  DEPENDS roscpp geometry_msgs visualization_msgs message_runtime urdf Eigen orocos_kdl kdl_parser
+)
+
 link_directories(${orocos_kdl_LIBRARY_DIRS})
 
 include_directories(${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
@@ -35,10 +42,4 @@ add_dependencies(kin_dyn_model ${PROJECT_NAME}_gencpp)
 
 ### Orocos Package Exports and Install Targets ###
 
-# Export package information (replaces catkin_package() macro) 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES kin_dyn_model
-  DEPENDS roscpp geometry_msgs visualization_msgs message_runtime urdf Eigen orocos_kdl kdl_parser
-)
 

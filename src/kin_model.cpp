@@ -52,7 +52,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
                 if (seg_it->second.segment.getJoint().getType() == KDL::Joint::None) {
                     std::cout << "ERROR: KinematicModel::KinematicModel: joint " << joint_name << " has type: None" << std::endl;
                 }
-                std::cout << "mapping joint " << joint_name << " q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
+//                std::cout << "mapping joint " << joint_name << " q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
                 q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
                 q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
                 found_joint = true;
@@ -61,7 +61,7 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         }
         if (!found_joint && seg_it->second.segment.getJoint().getType() != KDL::Joint::None) {
             int q_idx = ign_joint_name_q_idx_map_.size();
-            std::cout << "mapping ignored joint " << joint_name << " q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
+//            std::cout << "mapping ignored joint " << joint_name << " q_idx=" << q_idx << "  q_nr=" << seg_it->second.q_nr << std::endl;
             ign_q_idx_q_nr_map_.insert( std::make_pair(q_idx, seg_it->second.q_nr) );
             ign_q_nr_q_idx_map_.insert( std::make_pair(seg_it->second.q_nr, q_idx) );
 
@@ -109,6 +109,11 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
     }
 
     ndof_ = joint_names.size();
+    joint_names_ = joint_names;
+}
+
+const std::vector<std::string > &KinematicModel::getJointNames() const {
+    return joint_names_;
 }
 
 bool KinematicModel::parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o)
