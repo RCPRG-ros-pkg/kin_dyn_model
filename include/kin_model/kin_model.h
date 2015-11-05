@@ -50,6 +50,7 @@ public:
 
     void getJacobian(Jacobian &jac, const std::string &link_name, const Eigen::VectorXd &q) const;
     void calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q) const;
+    void calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q) const;
     void getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
                                         const std::string &link_name1, const KDL::Vector &x1,
                                         const std::string &link_name2, const KDL::Vector &x2, const Eigen::VectorXd &q) const;
@@ -70,8 +71,14 @@ public:
     int getDofCount() const;
 
     int getJointIndex(const std::string &joint_name) const;
+    int getIgnoredJointIndex(const std::string &joint_name) const;
 
     const std::vector<std::string > &getJointNames() const;
+
+    int getJointCount() const;
+    int getIgnoredJointCount() const;
+
+    bool getSubtreeLinks(const std::string &root_name, std::list<std::string > &link_names) const;
 
 protected:
     class Mimic {
@@ -82,6 +89,7 @@ protected:
     };
 
     void getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const;
+    void getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const;
 
     bool parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o);
     bool parseLimit(double &lower_limit, double &upper_limit, TiXmlElement* o);

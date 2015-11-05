@@ -363,8 +363,7 @@ void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, co
 }
 
 void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const {
-    for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
-//        std::cout<<"KinematicModel::getJointValuesKDL q_nr=" << q_nr << std::endl;
+/*    for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
         std::map<int, int >::const_iterator it = q_nr_q_idx_map_.find(q_nr);
         if (it != q_nr_q_idx_map_.end()) {
             int q_idx = it->second;
@@ -383,7 +382,6 @@ void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &
                     *((int*)0) = 0;
                 }
                 q_kdl(q_nr) = ign_q_[q_idx];
-//                std::cout << "setting ignored joint " << q_nr << " value " << q_kdl(q_nr) << std::endl;
             }
             else {
                 std::cout << "ERROR: KinematicModel::getJointValuesKDL: joint is neither in active nor ignored" << std::endl;
@@ -394,15 +392,53 @@ void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &
     // update mimic joints
     for (std::map<int, boost::shared_ptr<Mimic > >::const_iterator j_it = q_nr_joint_mimic_map_.begin(); j_it != q_nr_joint_mimic_map_.end(); j_it++) {
         q_kdl(j_it->first) = q_kdl(j_it->second->q_nr_) * j_it->second->multiplier_ + j_it->second->offset_;
+    }
+*/
+    getJointValuesKDL(q, ign_q_, q_kdl);
+}
 
-//        std::cout << "setting mimic joint " << j_it->first << " to " << q_kdl(j_it->first) <<
-//            " from joint " << j_it->second->q_nr_ << " (" << q_kdl(j_it->second->q_nr_) << ")  mul: " << j_it->second->multiplier_ << " offset: " << j_it->second->offset_ << std::endl;
+void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const {
+    for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
+        std::map<int, int >::const_iterator it = q_nr_q_idx_map_.find(q_nr);
+        if (it != q_nr_q_idx_map_.end()) {
+            int q_idx = it->second;
+            if (q_idx >= q.innerSize()) {
+                std::cout<< "ERROR: q_idx >= q.innerSize()   " << q_idx << " " << q.innerSize() << std::endl;
+                *((int*)0) = 0;
+            }
+            q_kdl(q_nr) = q[q_idx];
+        }
+        else {
+            std::map<int, int >::const_iterator ign_it = ign_q_nr_q_idx_map_.find(q_nr);
+            if (ign_it != ign_q_nr_q_idx_map_.end()) {
+                int q_idx = ign_it->second;
+                if (q_idx >= ign_q.innerSize()) {
+                    std::cout<< "ERROR: q_idx >= q.innerSize()   " << q_idx << " " << ign_q.innerSize() << std::endl;
+                    *((int*)0) = 0;
+                }
+                q_kdl(q_nr) = ign_q[q_idx];
+            }
+            else {
+                std::cout << "ERROR: KinematicModel::getJointValuesKDL: joint is neither in active nor ignored" << std::endl;
+                return;
+            }
+        }
+    }
+    // update mimic joints
+    for (std::map<int, boost::shared_ptr<Mimic > >::const_iterator j_it = q_nr_joint_mimic_map_.begin(); j_it != q_nr_joint_mimic_map_.end(); j_it++) {
+        q_kdl(j_it->first) = q_kdl(j_it->second->q_nr_) * j_it->second->multiplier_ + j_it->second->offset_;
     }
 }
 
 void KinematicModel::calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q) const {
     KDL::JntArray q_in( tree_.getNrOfJoints() );
     getJointValuesKDL(q, q_in);
+    pfk_solver_->JntToCart(q_in, T, link_name);
+}
+
+void KinematicModel::calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q) const {
+    KDL::JntArray q_in( tree_.getNrOfJoints() );
+    getJointValuesKDL(q, ign_q, q_in);
     pfk_solver_->JntToCart(q_in, T, link_name);
 }
 
@@ -570,17 +606,66 @@ int KinematicModel::getDofCount() const {
 int KinematicModel::getJointIndex(const std::string &joint_name) const {
     std::map<std::string, int >::const_iterator it1 = joint_name_q_nr_map_.find(joint_name);
     if (it1 == joint_name_q_nr_map_.end()) {
-        std::cout << "KinematicModel::getJointIndex: could not find joint " << joint_name << std::endl;
+//        std::cout << "KinematicModel::getJointIndex: could not find joint " << joint_name << std::endl;
         return -1;
     }
 
     int q_nr = it1->second;
     std::map<int, int >::const_iterator it2 = q_nr_q_idx_map_.find(q_nr);
     if (it2 == q_nr_q_idx_map_.end()) {
-        std::cout << "KinematicModel::getJointIndex: could not find joint q_nr " << q_nr << " name " << joint_name << std::endl;
+//        std::cout << "KinematicModel::getJointIndex: could not find joint q_nr " << q_nr << " name " << joint_name << std::endl;
         return -1;
     }
 
     return it2->second;
+}
+
+int KinematicModel::getIgnoredJointIndex(const std::string &joint_name) const {
+    std::map<std::string, int >::const_iterator it1 = joint_name_q_nr_map_.find(joint_name);
+    if (it1 == joint_name_q_nr_map_.end()) {
+//        std::cout << "KinematicModel::getIgnoredJointIndex: could not find joint " << joint_name << std::endl;
+        return -1;
+    }
+
+    int q_nr = it1->second;
+    std::map<int, int >::const_iterator it2 = ign_q_nr_q_idx_map_.find(q_nr);
+    if (it2 == ign_q_nr_q_idx_map_.end()) {
+//        std::cout << "KinematicModel::getIgnoredJointIndex: could not find joint q_nr " << q_nr << " name " << joint_name << std::endl;
+        return -1;
+    }
+
+    return it2->second;
+}
+
+int KinematicModel::getJointCount() const {
+    return joint_names_.size();
+}
+
+int KinematicModel::getIgnoredJointCount() const {
+    return ign_q_nr_q_idx_map_.size();
+}
+
+bool KinematicModel::getSubtreeLinks(const std::string &root_name, std::list<std::string > &link_names) const {
+    link_names.clear();
+    for (KDL::SegmentMap::const_iterator it = tree_.getSegments().begin(); it != tree_.getSegments().end(); it++) {
+        KDL::SegmentMap::const_iterator par_it = it;
+        bool in_subtree = false;
+        while (true) {
+//            std::cout << par_it->first << " ";
+            if (par_it->first == root_name) {
+                in_subtree = true;
+                break;
+            }
+            if (par_it == tree_.getRootSegment()) {
+                break;
+            }
+            par_it = par_it->second.parent;
+        }
+//        std::cout << std::endl;
+        if (in_subtree) {
+            link_names.push_back(it->first);
+        }
+    }
+    return true;
 }
 
