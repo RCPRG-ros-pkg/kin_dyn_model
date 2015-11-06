@@ -307,7 +307,12 @@ void KinematicModel::setIgnoredJointValue(const std::string &joint_name, double 
         return;
     }
     ign_q_(it->second) = value;
-//    std::cout << "KinematicModel::setIgnoredJointValue joint " << it->second << " value " << value << " " << ign_q_(it->second) << std::endl;
+}
+
+void KinematicModel::setIgnoredJointValues(const std::vector<std::string > &joint_names, const Eigen::VectorXd &q) {
+    for (int q_idx = 0; q_idx < joint_names.size(); q_idx++) {
+        setIgnoredJointValue( joint_names[q_idx], q(q_idx) );
+    }
 }
 
 void KinematicModel::getIgnoredJoints(Eigen::VectorXd &q, std::vector<std::string > &ign_joint_names) const {

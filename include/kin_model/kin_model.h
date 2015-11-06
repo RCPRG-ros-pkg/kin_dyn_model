@@ -57,6 +57,7 @@ public:
     void getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const KDL::JntArray &q_kdl, const std::string &base_name) const;
 
     void setIgnoredJointValue(const std::string &joint_name, double value);
+    void setIgnoredJointValues(const std::vector<std::string > &joint_names, const Eigen::VectorXd &q);
     void getIgnoredJoints(Eigen::VectorXd &ign_q, std::vector<std::string > &ign_joint_names) const;
 
     void setLowerLimit(int q_idx, double limit);
