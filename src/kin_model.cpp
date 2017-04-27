@@ -123,13 +123,12 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
     joint_names_ = joint_names;
 
     q_in_.resize( tree_.getNrOfJoints() );
-    std::cout << "sorted segments:" << std::endl;
+    jac_out_.resize( tree_.getNrOfJoints() );
+    q_kdl_.resize( tree_.getNrOfJoints() );
 
     getSortedSegments(tree_, sorted_seg_);
-    for (int i = 0; i < sorted_seg_.size(); ++i) {
-        std::cout << "    " << sorted_seg_[i]->segment.getName() << std::endl;
-    }
 
+    vec_int_links_.resize(sorted_seg_.size());
     fk_frames_.resize(sorted_seg_.size(), KDL::Frame());
 
     sorted_seg_parent_idx_.push_back(-1);
@@ -412,9 +411,8 @@ KinematicModel::~KinematicModel() {
 void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, const Eigen::VectorXd &q) const {
     getJointValuesKDL(q, q_in_);
 
-    KDL::Jacobian jac_out( tree_.getNrOfJoints() );
-    SetToZero(jac_out);
-    pjac_solver_->JntToJac(q_in_, jac_out, link_name);
+    SetToZero(jac_out_);
+    pjac_solver_->JntToJac(q_in_, jac_out_, link_name);
     for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
         std::map<int, int >::const_iterator map_it = q_idx_q_nr_map_.find(q_idx);
         if (map_it == q_idx_q_nr_map_.end()) {
@@ -422,7 +420,7 @@ void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, co
             return;
         }
         int q_nr = map_it->second;
-        KDL::Twist t = jac_out.getColumn(q_nr);
+        KDL::Twist t = jac_out_.getColumn(q_nr);
         for (int d_idx = 0; d_idx < 6; d_idx++) {
             jac(d_idx, q_idx) = t[d_idx];
         }
@@ -511,7 +509,7 @@ void KinematicModel::getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
                                         const std::string &link_name1, const KDL::Vector &x1,
                                         const std::string &link_name2, const KDL::Vector &x2, const Eigen::VectorXd &q) const {
 
-    std::set<unsigned int> link1_chain;
+    int vec_int_links_idx = 0;
     KDL::SegmentMap::const_iterator root = tree_.getRootSegment();
     KDL::SegmentMap::const_iterator end = tree_.getSegments().end();
 
@@ -519,7 +517,8 @@ void KinematicModel::getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
         if (seg_it->second.segment.getJoint().getType() == KDL::Joint::None) {
             continue;
         }
-        link1_chain.insert(seg_it->second.q_nr);
+        vec_int_links_[vec_int_links_idx] = seg_it->second.q_nr;
+        ++vec_int_links_idx;
     }
 
     std::string common_link_name;
@@ -528,17 +527,24 @@ void KinematicModel::getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
         if (seg_it->second.segment.getJoint().getType() == KDL::Joint::None) {
             continue;
         }
-        if (link1_chain.count(seg_it->second.q_nr) > 0) {
-            common_link_name = seg_it->second.segment.getName();
+        bool found = false;
+        for (int i = 0; i < vec_int_links_idx; ++i) {
+            if (vec_int_links_[i] == seg_it->second.q_nr) {
+                common_link_name = seg_it->second.segment.getName();
+                found = true;
+                break;
+            }
+        }
+        if (found) {
             break;
         }
     }
 
-    KDL::JntArray q_kdl( tree_.getNrOfJoints() );
-    getJointValuesKDL(q, q_kdl);
 
-    getJacobianForX(jac1, link_name1, x1, q_kdl, common_link_name);
-    getJacobianForX(jac2, link_name2, x2, q_kdl, common_link_name);
+    getJointValuesKDL(q, q_kdl_);
+
+    getJacobianForX(jac1, link_name1, x1, q_kdl_, common_link_name);
+    getJacobianForX(jac2, link_name2, x2, q_kdl_, common_link_name);
 }
 
 void KinematicModel::getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const KDL::JntArray &q_kdl, const std::string &base_name) const {

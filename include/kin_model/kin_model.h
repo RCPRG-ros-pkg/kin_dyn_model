@@ -120,6 +120,10 @@ protected:
     int ndof_;
 
     mutable KDL::JntArray q_in_;
+    mutable KDL::Jacobian jac_out_;
+    mutable std::vector<int > vec_int_links_;
+    mutable KDL::JntArray q_kdl_;
+
     std::vector<const KDL::TreeElement* > sorted_seg_;
     std::vector<int > sorted_seg_parent_idx_;
     std::vector<KDL::Frame > fk_frames_;
