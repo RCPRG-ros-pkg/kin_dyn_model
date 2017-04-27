@@ -48,6 +48,9 @@ public:
     KinematicModel(const std::string &urdf_string, const std::vector<std::string > &joint_names);
     ~KinematicModel();
 
+    void calculateFkAll(const Eigen::VectorXd &q);
+    KDL::Frame getFrame(const std::string &name) const;
+
     void getJacobian(Jacobian &jac, const std::string &link_name, const Eigen::VectorXd &q) const;
     void calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q) const;
     void calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q) const;
@@ -115,6 +118,11 @@ protected:
     std::vector<std::string > joint_names_;
     std::map<int, std::string> q_idx_link_name_map_;
     int ndof_;
+
+    mutable KDL::JntArray q_in_;
+    std::vector<const KDL::TreeElement* > sorted_seg_;
+    std::vector<int > sorted_seg_parent_idx_;
+    std::vector<KDL::Frame > fk_frames_;
 };
 
 #endif

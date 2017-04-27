@@ -33,6 +33,18 @@
 
 #include <set>
 
+static void getSortedSegments(const KDL::Tree &tree, KDL::SegmentMap::const_iterator it, std::vector<const KDL::TreeElement* > &out) {
+    out.push_back( &it->second );
+    for (int i = 0; i < it->second.children.size(); ++i) {
+        getSortedSegments(tree, it->second.children[i], out);
+    }
+}
+
+static void getSortedSegments(const KDL::Tree &tree, std::vector<const KDL::TreeElement* > &out) {
+    KDL::SegmentMap::const_iterator rootIterator = tree.getRootSegment();
+    getSortedSegments(tree, rootIterator, out);
+}
+
 KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector<std::string > &joint_names)
 {
     if (!kdl_parser::treeFromString(urdf_string, tree_)){
@@ -77,7 +89,6 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
         ign_q_(q_idx) = 0.0;
     }
 
-//    *((int*)0) = 1;
     parseURDF(urdf_string);
 
     for (int q_idx = 0; q_idx < joint_names.size(); q_idx++) {
@@ -110,6 +121,58 @@ KinematicModel::KinematicModel(const std::string &urdf_string, const std::vector
 
     ndof_ = joint_names.size();
     joint_names_ = joint_names;
+
+    q_in_.resize( tree_.getNrOfJoints() );
+    std::cout << "sorted segments:" << std::endl;
+
+    getSortedSegments(tree_, sorted_seg_);
+    for (int i = 0; i < sorted_seg_.size(); ++i) {
+        std::cout << "    " << sorted_seg_[i]->segment.getName() << std::endl;
+    }
+
+    fk_frames_.resize(sorted_seg_.size(), KDL::Frame());
+
+    sorted_seg_parent_idx_.push_back(-1);
+    for (int i = 1; i < sorted_seg_.size(); ++i) {
+        const std::string &parent_name = sorted_seg_[i]->parent->second.segment.getName();
+        int parent_idx = -1;
+        for (int j = 0; j < i; ++j) {
+            if (sorted_seg_[j]->segment.getName() == parent_name) {
+                parent_idx = j;
+                break;
+            }
+        }
+        if (parent_idx == -1) {
+            std::cout << "KinematicModel critical error: could not find parent segment" << std::endl;
+            break;
+        }
+        sorted_seg_parent_idx_.push_back(parent_idx);
+    }
+}
+
+void KinematicModel::calculateFkAll(const Eigen::VectorXd &q) {
+    getJointValuesKDL(q, q_in_);
+
+    for (int i = 0; i < sorted_seg_.size(); ++i) {
+        KDL::Frame currentFrame = sorted_seg_[i]->segment.pose(q_in_(sorted_seg_[i]->q_nr));
+        KDL::Frame parent_frame;
+        if (sorted_seg_parent_idx_[i] >= 0) {
+            parent_frame = fk_frames_[sorted_seg_parent_idx_[i]];
+        }
+        else {
+            parent_frame = KDL::Frame();
+        }
+        fk_frames_[i] = parent_frame * currentFrame;
+    }
+}
+
+KDL::Frame KinematicModel::getFrame(const std::string &name) const {
+    for (int i = 0; i < sorted_seg_.size(); ++i) {
+        if (sorted_seg_[i]->segment.getName() == name) {
+            return fk_frames_[i];
+        }
+    }
+    return KDL::Frame();
 }
 
 const std::vector<std::string > &KinematicModel::getJointNames() const {
@@ -347,12 +410,11 @@ KinematicModel::~KinematicModel() {
 }
 
 void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, const Eigen::VectorXd &q) const {
-    KDL::JntArray q_in( tree_.getNrOfJoints() );
-    getJointValuesKDL(q, q_in);
+    getJointValuesKDL(q, q_in_);
 
     KDL::Jacobian jac_out( tree_.getNrOfJoints() );
     SetToZero(jac_out);
-    pjac_solver_->JntToJac(q_in, jac_out, link_name);
+    pjac_solver_->JntToJac(q_in_, jac_out, link_name);
     for (int q_idx = 0; q_idx < q.innerSize(); q_idx++) {
         std::map<int, int >::const_iterator map_it = q_idx_q_nr_map_.find(q_idx);
         if (map_it == q_idx_q_nr_map_.end()) {
@@ -436,15 +498,13 @@ void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::Ve
 }
 
 void KinematicModel::calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q) const {
-    KDL::JntArray q_in( tree_.getNrOfJoints() );
-    getJointValuesKDL(q, q_in);
-    pfk_solver_->JntToCart(q_in, T, link_name);
+    getJointValuesKDL(q, q_in_);
+    pfk_solver_->JntToCart(q_in_, T, link_name);
 }
 
 void KinematicModel::calculateFk(KDL::Frame &T, const std::string &link_name, const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q) const {
-    KDL::JntArray q_in( tree_.getNrOfJoints() );
-    getJointValuesKDL(q, ign_q, q_in);
-    pfk_solver_->JntToCart(q_in, T, link_name);
+    getJointValuesKDL(q, ign_q, q_in_);
+    pfk_solver_->JntToCart(q_in_, T, link_name);
 }
 
 void KinematicModel::getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
