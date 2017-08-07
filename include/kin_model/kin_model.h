@@ -61,7 +61,9 @@ public:
 
     void setIgnoredJointValue(const std::string &joint_name, double value);
     void setIgnoredJointValues(const std::vector<std::string > &joint_names, const Eigen::VectorXd &q);
+    void setIgnoredJointValue(unsigned int idx, double value);
     void getIgnoredJoints(Eigen::VectorXd &ign_q, std::vector<std::string > &ign_joint_names) const;
+    void getIgnoredJointsNameVector(std::vector<std::string > &joint_name_vec) const;
 
     void setLowerLimit(int q_idx, double limit);
     void setUpperLimit(int q_idx, double limit);
@@ -102,13 +104,15 @@ protected:
 
     KDL::Tree tree_;
     std::map<int, int > q_idx_q_nr_map_, q_nr_q_idx_map_;
-    std::map<int, int > ign_q_idx_q_nr_map_, ign_q_nr_q_idx_map_;
+//    std::map<int, int > ign_q_idx_q_nr_map_, ign_q_nr_q_idx_map_;
+    std::vector<int > ign_q_idx_q_nr_vec_, ign_q_nr_q_idx_vec_;
     boost::shared_ptr<KDL::TreeJntToJacSolver > pjac_solver_;
     boost::shared_ptr<KDL::TreeFkSolverPos_recursive > pfk_solver_;
     std::map<std::string, int > ign_joint_name_q_idx_map_;
     std::map<std::string, int > joint_name_q_nr_map_;
     Eigen::VectorXd ign_q_;
-    std::map<int, boost::shared_ptr<Mimic > > q_nr_joint_mimic_map_;
+    std::vector<boost::shared_ptr<Mimic > > q_nr_joint_mimic_vec_;
+//    std::map<int, boost::shared_ptr<Mimic > > q_nr_joint_mimic_map_;
     std::map<std::string, double> joint_lower_limit_;
     std::map<std::string, double> joint_upper_limit_;
 
