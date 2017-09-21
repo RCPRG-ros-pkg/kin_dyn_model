@@ -29,7 +29,7 @@
 // Author: Dawid Seredynski
 //
 
-#include "kin_model/kin_model.h"
+#include "kin_dyn_model/kin_model.h"
 
 #include <set>
 

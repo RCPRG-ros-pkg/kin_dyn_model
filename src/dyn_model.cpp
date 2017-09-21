@@ -29,7 +29,7 @@
 // Author: Dawid Seredynski
 //
 
-#include "dyn_model/dyn_model.h"
+#include "kin_dyn_model/dyn_model.h"
 
 DynamicModel::DynamicModel() {
 }
