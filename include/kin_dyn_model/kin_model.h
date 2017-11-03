@@ -86,6 +86,9 @@ public:
 
     bool getSubtreeLinks(const std::string &root_name, std::list<std::string > &link_names) const;
 
+    void getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const;
+    void getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const;
+
 protected:
     class Mimic {
     public:
@@ -93,9 +96,6 @@ protected:
         double multiplier_;
         double offset_;
     };
-
-    void getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const;
-    void getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const;
 
     bool parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o);
     bool parseLimit(double &lower_limit, double &upper_limit, TiXmlElement* o);

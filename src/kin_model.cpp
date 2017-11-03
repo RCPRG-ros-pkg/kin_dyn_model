@@ -499,6 +499,10 @@ void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &
 }
 
 void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const {
+    if (q_kdl.rows() != tree_.getNrOfJoints()) {
+        std::cout<< "ERROR: q_kdl.size() != tree_.getNrOfJoints()   " << q_kdl.rows() << " " << tree_.getNrOfJoints() << std::endl;
+        *((int*)0) = 0;
+    }
     for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
         std::map<int, int >::const_iterator it = q_nr_q_idx_map_.find(q_nr);
         if (it != q_nr_q_idx_map_.end()) {
