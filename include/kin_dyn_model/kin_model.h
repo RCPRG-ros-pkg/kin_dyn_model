@@ -37,8 +37,15 @@
 #include <kdl/treejnttojacsolver.hpp>
 #include <kdl/treefksolverpos_recursive.hpp>
 #include "Eigen/Dense"
-#include <map>
 #include <tinyxml.h>
+#include <map>
+#include <list>
+#include <vector>
+#include <set>
+#include <string>
+
+#include <boost/shared_ptr.hpp>
+#include <boost/lexical_cast.hpp>
 
 class KinematicModel {
 public:

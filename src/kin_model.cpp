@@ -31,8 +31,6 @@
 
 #include "kin_dyn_model/kin_model.h"
 
-#include <set>
-
 static void getSortedSegments(const KDL::Tree &tree, KDL::SegmentMap::const_iterator it, std::vector<const KDL::TreeElement* > &out) {
     out.push_back( &it->second );
     for (int i = 0; i < it->second.children.size(); ++i) {
