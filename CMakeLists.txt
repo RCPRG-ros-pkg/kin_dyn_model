@@ -12,27 +12,35 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
 )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(orocos_kdl REQUIRED)
 find_package(kdl_parser REQUIRED)
 
-# Export package information (replaces catkin_package() macro) 
+# Export package information (replaces catkin_package() macro)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES kin_dyn_model
-  DEPENDS roscpp geometry_msgs visualization_msgs message_runtime urdf Eigen orocos_kdl kdl_parser
+  DEPENDS
+    roscpp
+    geometry_msgs
+    visualization_msgs
+    message_runtime
+    urdf
+    EIGEN3
+    orocos_kdl
+    kdl_parser
 )
 
 link_directories(${orocos_kdl_LIBRARY_DIRS})
 
-include_directories(${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
 # listed in the package.xml file
 
 include_directories(${USE_OROCOS_INCLUDE_DIRS} include)
-ADD_DEFINITIONS(-DEIGEN_RUNTIME_NO_MALLOC)
+add_definitions(-DEIGEN_RUNTIME_NO_MALLOC)
 ### Orocos Targets ###
 
 add_library(kin_dyn_model src/kin_model.cpp src/dyn_model.cpp)
