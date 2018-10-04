@@ -44,9 +44,7 @@ add_definitions(-DEIGEN_RUNTIME_NO_MALLOC)
 ### Orocos Targets ###
 
 add_library(kin_dyn_model src/kin_model.cpp src/dyn_model.cpp)
-
 target_link_libraries(kin_dyn_model ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES})
-add_dependencies(kin_dyn_model ${PROJECT_NAME}_gencpp)
 
 ### Orocos Package Exports and Install Targets ###
 
