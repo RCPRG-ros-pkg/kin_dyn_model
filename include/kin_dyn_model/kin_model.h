@@ -64,16 +64,12 @@ public:
     void getJacobiansForPairX(Jacobian &jac1, Jacobian &jac2,
                                         const std::string &link_name1, const KDL::Vector &x1,
                                         const std::string &link_name2, const KDL::Vector &x2, const Eigen::VectorXd &q) const;
-    void getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const KDL::JntArray &q_kdl, const std::string &base_name) const;
 
     void setIgnoredJointValue(const std::string &joint_name, double value);
-    void setIgnoredJointValues(const std::vector<std::string > &joint_names, const Eigen::VectorXd &q);
+    //void setIgnoredJointValues(const std::vector<std::string > &joint_names, const Eigen::VectorXd &q);
     void setIgnoredJointValue(unsigned int idx, double value);
-    void getIgnoredJoints(Eigen::VectorXd &ign_q, std::vector<std::string > &ign_joint_names) const;
+    //void getIgnoredJoints(Eigen::VectorXd &ign_q, std::vector<std::string > &ign_joint_names) const;
     void getIgnoredJointsNameVector(std::vector<std::string > &joint_name_vec) const;
-
-    void setLowerLimit(int q_idx, double limit);
-    void setUpperLimit(int q_idx, double limit);
 
     double getLowerLimit(int q_idx) const;
     double getUpperLimit(int q_idx) const;
@@ -93,9 +89,6 @@ public:
 
     bool getSubtreeLinks(const std::string &root_name, std::list<std::string > &link_names) const;
 
-    void getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const;
-    void getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const;
-
 protected:
     class Mimic {
     public:
@@ -103,6 +96,14 @@ protected:
         double multiplier_;
         double offset_;
     };
+
+    void setLowerLimit(int q_idx, double limit);
+    void setUpperLimit(int q_idx, double limit);
+
+    void getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const;
+    void getJointValuesKDL(const Eigen::VectorXd &q, const Eigen::VectorXd &ign_q, KDL::JntArray &q_kdl) const;
+
+    void getJacobianForX(Jacobian &jac, const std::string &link_name, const KDL::Vector &x, const KDL::JntArray &q_kdl, const std::string &base_name) const;
 
     bool parseMimic(std::string &mimic_name, double &multiplier, double &offset, TiXmlElement* o);
     bool parseLimit(double &lower_limit, double &upper_limit, TiXmlElement* o);

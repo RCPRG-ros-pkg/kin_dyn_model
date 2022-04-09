@@ -378,12 +378,6 @@ void KinematicModel::setIgnoredJointValue(const std::string &joint_name, double 
     ign_q_(it->second) = value;
 }
 
-void KinematicModel::setIgnoredJointValues(const std::vector<std::string > &joint_names, const Eigen::VectorXd &q) {
-    for (int q_idx = 0; q_idx < joint_names.size(); q_idx++) {
-        setIgnoredJointValue( joint_names[q_idx], q(q_idx) );
-    }
-}
-
 void KinematicModel::setIgnoredJointValue(unsigned int idx, double value) {
 
     if (idx < 0 || idx >= ign_q_idx_q_nr_vec_.size()) {
@@ -405,38 +399,6 @@ void KinematicModel::getIgnoredJointsNameVector(std::vector<std::string > &joint
     for (std::map<std::string, int >::const_iterator it = ign_joint_name_q_idx_map_.begin(); it != ign_joint_name_q_idx_map_.end(); ++it) {
         joint_name_vec[it->second] = it->first;
     }
-}
-
-void KinematicModel::getIgnoredJoints(Eigen::VectorXd &q, std::vector<std::string > &ign_joint_names) const {
-    q.resize(ign_joint_name_q_idx_map_.size());
-    ign_joint_names.clear();
-
-    int ret_q_idx = 0;
-    for (std::map<std::string, int >::const_iterator it = ign_joint_name_q_idx_map_.begin(); it != ign_joint_name_q_idx_map_.end(); it++, ret_q_idx++) {
-        int ign_q_idx = it->second;
-        ign_joint_names.push_back(it->first);
-        int qj_nr = ign_q_idx_q_nr_vec_[ign_q_idx];
-        //int qj_nr = ign_q_idx_q_nr_map_.find(ign_q_idx)->second;
-        boost::shared_ptr<Mimic > mimic = q_nr_joint_mimic_vec_[qj_nr];
-//        std::map<int, boost::shared_ptr<Mimic > >::const_iterator j_it = q_nr_joint_mimic_map_.find(qj_nr);
-//        if (j_it != q_nr_joint_mimic_map_.end()) {
-        if (mimic) {
-            int ign_qm_idx = ign_q_nr_q_idx_vec_[mimic->q_nr_];
-            //int ign_qm_idx = ign_q_nr_q_idx_map_.find(mimic->q_nr_)->second;
-            q(ret_q_idx) = ign_q_(ign_qm_idx) * mimic->multiplier_ + mimic->offset_;
-        }
-        else {
-            q(ret_q_idx) = ign_q_(ign_q_idx);
-        }
-    }
-
-    // update mimic joints
-//    for (std::map<int, boost::shared_ptr<Mimic > >::const_iterator j_it = q_nr_joint_mimic_map_.begin(); j_it != q_nr_joint_mimic_map_.end(); j_it++) {
-//        int qj_idx  = ign_q_nr_q_idx_map_.find(j_it->first)->second;
-//        int qm_idx = ign_q_nr_q_idx_map_.find(j_it->second->q_nr_)->second;
-//        q(qj_idx) = q(qm_idx) * j_it->second->multiplier_ + j_it->second->offset_;
-//    }
-
 }
 
 KinematicModel::~KinematicModel() {
@@ -462,37 +424,6 @@ void KinematicModel::getJacobian(Jacobian &jac, const std::string &link_name, co
 }
 
 void KinematicModel::getJointValuesKDL(const Eigen::VectorXd &q, KDL::JntArray &q_kdl) const {
-/*    for (int q_nr = 0; q_nr < tree_.getNrOfJoints(); q_nr++) {
-        std::map<int, int >::const_iterator it = q_nr_q_idx_map_.find(q_nr);
-        if (it != q_nr_q_idx_map_.end()) {
-            int q_idx = it->second;
-            if (q_idx >= q.innerSize()) {
-                std::cout<< "ERROR: q_idx >= q.innerSize()   " << q_idx << " " << q.innerSize() << std::endl;
-                *((int*)0) = 0;
-            }
-            q_kdl(q_nr) = q[q_idx];
-        }
-        else {
-            std::map<int, int >::const_iterator ign_it = ign_q_nr_q_idx_map_.find(q_nr);
-            if (ign_it != ign_q_nr_q_idx_map_.end()) {
-                int q_idx = ign_it->second;
-                if (q_idx >= ign_q_.innerSize()) {
-                    std::cout<< "ERROR: q_idx >= q.innerSize()   " << q_idx << " " << ign_q_.innerSize() << std::endl;
-                    *((int*)0) = 0;
-                }
-                q_kdl(q_nr) = ign_q_[q_idx];
-            }
-            else {
-                std::cout << "ERROR: KinematicModel::getJointValuesKDL: joint is neither in active nor ignored" << std::endl;
-                return;
-            }
-        }
-    }
-    // update mimic joints
-    for (std::map<int, boost::shared_ptr<Mimic > >::const_iterator j_it = q_nr_joint_mimic_map_.begin(); j_it != q_nr_joint_mimic_map_.end(); j_it++) {
-        q_kdl(j_it->first) = q_kdl(j_it->second->q_nr_) * j_it->second->multiplier_ + j_it->second->offset_;
-    }
-*/
     getJointValuesKDL(q, ign_q_, q_kdl);
 }
 
